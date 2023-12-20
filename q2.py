@@ -241,8 +241,13 @@ prob.solve()
 initial_solution = prob.solution.get_values()
 initial_objective_value = prob.solution.get_objective_value()
 
+# Adjusting values for variables with 'Ce' and 'Cr'. For each cost, we divided to 1000 for simplicity.
+# To show correct results, we should multiply the costs with 1000 at the end.
+adjusted_solution = [value * 1000 if var.startswith('Ce') or var == 'Cr' else value
+                     for var, value in zip(variables, initial_solution)]
+
 print("Variable:", variables)
-print("Solution:", initial_solution)
-print("Objective Value:", initial_objective_value)
+print("Solution:", adjusted_solution)
+print("Objective Value:", initial_objective_value*1000)  # adjusted solution is multiplied with 1000 for correct results
 
 # End of q2.py
