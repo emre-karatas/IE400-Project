@@ -28,41 +28,54 @@ model.objective.set_linear([(ce, 1), (cr, 1)])
 
 # Assuming Dij (distance between nodes) and Ti (cycling count) are given as parameters
 # Example data (Replace with actual data)
-Dij = [[...], [...], ...]  # Replace with actual distances
-Ti = [...]  # Replace with actual cycling counts
+Dij = [
+                [0, 1, 2, 1, 1, 2, 2, 1],
+                [1, 0, 1, 1, 2, 3, 1, 3],
+                [2, 1, 0, 1, 2, 2, 3, 2],
+                [1, 1, 1, 0, 1, 2, 1, 2],
+                [1, 2, 2, 1, 0, 1, 3, 2],
+                [2, 3, 2, 2, 1, 0, 1, 2],
+                [2, 1, 3, 1, 3, 1, 0, 1],
+                [1, 3, 2, 2, 2, 2, 1, 0]
+            ]
+Ti = [1, 3, 2, 1, 3, 4, 1, 1, 2, 1, 4, 4, 1, 1, 4]
 
-# Constraints
-# Energy cost for each train
 for i in range(1, 16):
     train_var = xi[i - 1]
     energy_cost_electric = 16 * 20000 * Ti[i - 1]  # Example calculation for electric
     energy_cost_diesel = 16 * 100000 * Ti[i - 1]   # Example calculation for diesel
+    # Constraint for electric train
     model.linear_constraints.add(
-        lin_expr=[[train_var], [1]],
-        senses=["E"],
-        rhs=[energy_cost_electric + (1 - energy_cost_electric) * energy_cost_diesel]
+        lin_expr=[[[train_var, ce], [1, -energy_cost_electric]]],
+        senses=["L"],
+        rhs=[energy_cost_electric - energy_cost_diesel]
+    )
+    # Constraint for diesel train
+    model.linear_constraints.add(
+        lin_expr=[[[train_var, ce], [-1, -energy_cost_diesel]]],
+        senses=["G"],
+        rhs=[-energy_cost_diesel]
     )
 
-# Total energy cost
-model.linear_constraints.add(
-    lin_expr=[[xi, ["1"] * 15], [ce, -1]],
-    senses=["E"],
-    rhs=[0]
-)
 
 # Other costs
 model.linear_constraints.add(
-    lin_expr=[[xi, ["-1"] * 15], [cx, 1], [cy, 1], [fx, 1], [fy, 1], [ci, ["1"] * 15], [cr, -1]],
+    lin_expr=[
+        [
+            xi + [cx, cy, fx, fy] + ci + [cr],
+            [-1] * 15 + [1, 1, 1, 1] + [1] * 15 + [-1]
+        ]
+    ],
     senses=["E"],
     rhs=[15 * 250000 - 750000 - 1000000 - 800000 - 350000]
 )
+
 
 # Solve the model
 try:
     model.solve()
 except CplexError as exc:
     print(exc)
-    return
 
 # Print the solution
 print("Solution status =", model.solution.get_status())
